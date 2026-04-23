@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Tools Evaluation — PM Workflows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400;1,500&family=DM+Mono:wght@300;400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0C0C0A;
+    --surface: #141412;
+    --surface2: #1C1C19;
+    --border: #2A2A26;
+    --text: #E2DDD4;
+    --text-muted: #7A7669;
+    --text-dim: #4A4840;
+    --green: #8BF5A0;
+    --amber: #F0B429;
+    --coral: #FF7862;
+    --sky: #5BC8F5;
+    --violet: #C5A8FF;
+    --adopt: #8BF5A0;
+    --watch: #F0B429;
+    --skip: #FF7862;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none; opacity: 0.6;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 32px 120px; }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 64px;
+  }
+
+  .header-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .header-meta span::before { content: '↳ '; }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    color: #F0EDE6;
+    margin-bottom: 28px;
+  }
+
+  h1 em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--amber);
+  }
+
+  .header-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    max-width: 580px;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* ── SCORECARD ── */
+  .scorecard {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    margin-bottom: 80px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  .score-card {
+    background: var(--surface);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: background 0.2s;
+  }
+
+  .score-card:hover { background: var(--surface2); }
+
+  .score-tool {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .score-verdict {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  .verdict-adopt { background: rgba(139,245,160,0.12); color: var(--adopt); border: 1px solid rgba(139,245,160,0.25); }
+  .verdict-watch { background: rgba(240,180,41,0.12); color: var(--watch); border: 1px solid rgba(240,180,41,0.25); }
+  .verdict-skip  { background: rgba(255,120,98,0.12);  color: var(--skip);  border: 1px solid rgba(255,120,98,0.25);  }
+
+  .score-use {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── TOOL CARD ── */
+  .tool-card {
+    margin-bottom: 64px;
+    padding: 0 0 64px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tool-card:last-of-type { border-bottom: none; }
+
+  .tool-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+
+  .tool-title-group { flex: 1; min-width: 220px; }
+
+  .tool-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .tool-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  .tool-tagline {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  .tool-badge-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .verdict-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 2px;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    background: var(--surface);
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── TOOL STRIPE ── */
+  .tool-stripe {
+    height: 3px;
+    border-radius: 1px;
+    margin-bottom: 36px;
+    width: 100%;
+  }
+
+  /* ── GRID ROWS ── */
+  .eval-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 0;
+  }
+
+  .eval-row {
+    display: contents;
+  }
+
+  .eval-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 16px 20px 16px 0;
+    border-bottom: 1px solid var(--border);
+    padding-top: 20px;
+    line-height: 1.4;
+  }
+
+  .eval-content {
+    font-size: 15.5px;
+    line-height: 1.75;
+    color: var(--text);
+    padding: 20px 0 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .eval-content p + p { margin-top: 10px; }
+
+  .eval-content strong {
+    color: #F0EDE6;
+    font-weight: 400;
+  }
+
+  .eval-content .highlight {
+    border-left: 2px solid;
+    padding-left: 14px;
+    margin: 12px 0;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 15px;
+  }
+
+  .plus-minus {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pm-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 15px;
+  }
+
+  .pm-item .pm-icon {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    min-width: 18px;
+    margin-top: 3px;
+  }
+
+  .pm-plus .pm-icon { color: var(--adopt); }
+  .pm-minus .pm-icon { color: var(--coral); }
+
+  /* ── RAPIDO SECTION ── */
+  .rapido-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 40px 44px;
+    margin-top: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rapido-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber), var(--green));
+  }
+
+  .rapido-section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .rapido-section .rapido-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 32px;
+  }
+
+  .workflow-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 28px 32px;
+    margin-top: 24px;
+  }
+
+  .workflow-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 20px;
+  }
+
+  .workflow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    counter-reset: step;
+  }
+
+  .workflow-step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .workflow-step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding-top: 2px;
+  }
+
+  .step-body strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+    color: #F0EDE6;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+
+  .step-body span {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .time-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    background: rgba(139,245,160,0.08);
+    border: 1px solid rgba(139,245,160,0.2);
+    padding: 2px 7px;
+    border-radius: 2px;
+    margin-left: 8px;
+  }
+
+  /* ── FRAMEWORK ── */
+  .framework-section { margin-top: 80px; }
+
+  .framework-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px;
+    margin-top: 32px;
+  }
+
+  .framework-cell {
+    background: var(--surface);
+    padding: 24px 22px;
+  }
+
+  .fc-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .fc-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #F0EDE6;
+    margin-bottom: 8px;
+  }
+
+  .fc-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 100px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-left {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-right {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── TOOL COLORS ── */
+  .c-perplexity { color: var(--sky); }
+  .c-notion { color: var(--text-muted); }
+  .c-granola { color: var(--green); }
+  .c-dovetail { color: var(--violet); }
+  .c-lovable { color: var(--coral); }
+
+  .stripe-perplexity { background: var(--sky); }
+  .stripe-notion { background: #888; }
+  .stripe-granola { background: var(--green); }
+  .stripe-dovetail { background: var(--violet); }
+  .stripe-lovable { background: var(--coral); }
+
+  /* ── INTRO ── */
+  .intro-block {
+    margin-bottom: 72px;
+    padding-bottom: 60px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .intro-block p {
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  .intro-block p + p { margin-top: 16px; }
+
+  .callout {
+    background: var(--surface);
+    border-left: 2px solid var(--amber);
+    padding: 18px 24px;
+    margin: 24px 0;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* ── RATING DOTS ── */
+  .rating {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .dot.filled { background: var(--amber); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 640px) {
+    .scorecard { grid-template-columns: repeat(2, 1fr); }
+    .eval-grid { grid-template-columns: 1fr; }
+    .eval-label { border-bottom: none; padding-bottom: 0; font-size: 10px; }
+    .framework-grid { grid-template-columns: 1fr; }
+    .rapido-section { padding: 28px 24px; }
+    .workflow-box { padding: 20px 20px; }
+    h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-meta">
+      <span>Aditya Mathur</span>
+      <span>Self-Directed Research</span>
+      <span>April 2025</span>
+      <span>v1.0</span>
+    </div>
+    <h1>AI Tools Evaluation<br>for <em>PM Workflows</em></h1>
+    <p class="header-sub">I spent a weekend stress-testing five tools against actual PM tasks — not demos, not toy prompts. This is what I found, including where things broke and what I'd actually change about my workflow going forward.</p>
+  </header>
+
+  <!-- SCORECARD -->
+  <div class="scorecard">
+    <div class="score-card">
+      <div class="score-tool">Perplexity</div>
+      <div class="score-verdict verdict-adopt">Adopt</div>
+      <div class="score-use">Competitive & market research</div>
+    </div>
+    <div class="score-card">
+      <div class="score-tool">Notion AI</div>
+      <div class="score-verdict verdict-watch">Watch</div>
+      <div class="score-use">PRD drafting & doc structure</div>
+    </div>
+    <div class="score-card">
+      <div class="score-tool">Granola</div>
+      <div class="score-verdict verdict-watch">Watch</div>
+      <div class="score-use">Meeting notes & synthesis</div>
+    </div>
+    <div class="score-card">
+      <div class="score-tool">Dovetail</div>
+      <div class="score-verdict verdict-adopt">Adopt</div>
+      <div class="score-use">User research synthesis</div>
+    </div>
+    <div class="score-card">
+      <div class="score-tool">Lovable</div>
+      <div class="score-verdict verdict-adopt">Adopt</div>
+      <div class="score-use">Rapid internal prototyping</div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="intro-block">
+    <p>Most AI tool roundups are written by people who spent 10 minutes with each tool and formed an opinion. I wanted to do something different — pick tasks I actually care about, use the tools the way a PM would use them day-to-day, and see where the wheels come off.</p>
+    <p>My background is in financial analysis and operations, not traditional PM. So I'm probably more skeptical than most about tools that promise to replace judgment. What I was looking for: does this make a smart person faster, or does it make a lazy person feel productive?</p>
+    <div class="callout">
+      Each tool got 20–30 minutes on a specific PM task — no demos, no curated examples. I evaluated on three things: how much editing the output needed, what happens when the tool fails, and whether I'd actually remember to use it a month from now.
+    </div>
+  </div>
+
+  <!-- TOOLS SECTION -->
+  <div class="section-label">Tool Evaluations</div>
+
+  <!-- TOOL 1: PERPLEXITY -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div class="tool-title-group">
+        <div class="tool-number">01 / 05</div>
+        <div class="tool-name c-perplexity">Perplexity Pro</div>
+        <div class="tool-tagline">AI-native search with cited sources</div>
+      </div>
+      <div class="tool-badge-group">
+        <div class="verdict-badge verdict-adopt">↑ Adopt</div>
+        <div class="tag">Competitive Research</div>
+        <div class="tag">Market Analysis</div>
+      </div>
+    </div>
+    <div class="tool-stripe stripe-perplexity"></div>
+
+    <div class="eval-grid">
+      <div class="eval-row">
+        <div class="eval-label">Problem it solves</div>
+        <div class="eval-content">
+          Desk research is where PMs lose hours. You're jumping between 12 browser tabs, trying to synthesize funding news, competitor feature releases, and regulatory changes. Perplexity compresses that into a cited, scannable answer — and crucially, it tells you <em>where</em> it got the information.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">What I tested</div>
+        <div class="eval-content">
+          Mapped the India tier-2/3 bike-taxi and two-wheeler aggregator landscape: Rapido, Namma Yatri, Ola, InDrive, Yulu. Asked for recent funding rounds, city expansion moves, and driver-side policy changes in 2024–25. Then drilled into the Bengaluru-specific competitive picture.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it impressed</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>Synthesized across recent news, press releases, and LinkedIn posts — sources cited inline. I could verify everything in under 10 minutes instead of reconstructing it from scratch across a dozen tabs.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>The follow-up questions surfaced angles I hadn't considered — specifically pushed me toward driver retention as the real competitive differentiator, not pricing. That reframe was worth the whole session.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>Spaces let you track ongoing topics passively. I set one up for "India mobility regulation" and it now surfaces relevant updates without me having to remember to check.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it fell short</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Hallucinated one Rapido funding round — attributed a number from an older Ola Electric round to Rapido. Requires verification on any specific financial claim. Never trust the numbers blindly.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Hyperlocal India nuance suffers — it knows that Namma Yatri operates in Bengaluru, but doesn't know that their driver-side UX is in Kannada or why that matters for retention. That's in nobody's indexed content.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Pro pricing ($20/month) is hard to justify for solo researchers. Makes more sense as a team subscription.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Recommendation</div>
+        <div class="eval-content">
+          <strong>Adopt</strong> — but with a mental model shift. Treat it as the thing you use to stop starting from zero, not as a source of truth. Any specific data point that's going into a brief or a deck needs to be verified. The hallucination rate is low but non-zero, and a wrong funding number in a VC context is a credibility hit you don't recover from. That said, for a competitive scan or a market sizing exercise, it's saved me more time than any other tool in this list.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOL 2: NOTION AI -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div class="tool-title-group">
+        <div class="tool-number">02 / 05</div>
+        <div class="tool-name c-notion">Notion AI</div>
+        <div class="tool-tagline">Writing assistant built into your workspace</div>
+      </div>
+      <div class="tool-badge-group">
+        <div class="verdict-badge verdict-watch">→ Watch</div>
+        <div class="tag">PRD Drafting</div>
+        <div class="tag">Documentation</div>
+      </div>
+    </div>
+    <div class="tool-stripe stripe-notion"></div>
+
+    <div class="eval-grid">
+      <div class="eval-row">
+        <div class="eval-label">Problem it solves</div>
+        <div class="eval-content">
+          The blank PRD. Every PM knows the feeling — you have the thinking, you just dread the 45 minutes of structure-building before you can write the actual substance. Notion AI is supposed to get you past the blank page faster.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">What I tested</div>
+        <div class="eval-content">
+          Drafted a PRD for a "Surge Pricing Transparency" feature — a hypothetical for a ride-hailing app where riders see a real-time breakdown of why surge pricing is active (demand map, rain, events). Gave Notion AI a rough 4-line brief and asked it to build the full document structure and flesh out each section.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it impressed</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>Structure was solid out of the box — it included an "out of scope" block and a dependencies table I hadn't asked for, which saved me from forgetting them. The scaffold is legitimately useful.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>The "make shorter" command actually works. Cut three bloated requirement sentences down to one line each without losing meaning. I use this more than any other Notion AI feature now.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>If your team already lives in Notion, the zero-friction integration is real. You don't have to copy-paste anything anywhere. The first draft appears in the doc you're already working in.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it fell short</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Success metrics were embarrassingly generic. It wrote "Improve NPS by 5 points" for a surge transparency feature. A PM who ships that gets laughed out of the review. It has no model for what matters in a specific business context.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>It's a drafting assistant, not a thinking partner. It won't push back on your assumptions, flag that your "user problem" is actually an ops problem, or ask why you're building this at all.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>The output still needs a full editing pass. At about 40% of the content requiring rewrite, the time savings is real but smaller than advertised.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Recommendation</div>
+        <div class="eval-content">
+          <strong>Watch.</strong> The thing that bothered me most isn't the output quality — it's the risk it creates for people who don't know what good looks like yet. A junior PM using Notion AI to write success metrics and shipping those metrics into a review without questioning them is a real problem. It produces confident-sounding mediocrity. If your team has strong PM judgment, it's a useful accelerant. If your team is still building that muscle, I'd be careful about how you introduce it.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOL 3: GRANOLA -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div class="tool-title-group">
+        <div class="tool-number">03 / 05</div>
+        <div class="tool-name c-granola">Granola</div>
+        <div class="tool-tagline">Meeting notes that actually capture decisions</div>
+      </div>
+      <div class="tool-badge-group">
+        <div class="verdict-badge verdict-watch">→ Watch</div>
+        <div class="tag">Meeting Synthesis</div>
+        <div class="tag">Action Items</div>
+      </div>
+    </div>
+    <div class="tool-stripe stripe-granola"></div>
+
+    <div class="eval-grid">
+      <div class="eval-row">
+        <div class="eval-label">Problem it solves</div>
+        <div class="eval-content">
+          The post-meeting tax. You've just finished a 45-minute cross-functional sync, and now you need to write up notes, identify action items, and distribute them — all before the next meeting. Granola runs in the background and does this automatically, surfacing decisions and owners so you can focus on being present in the conversation.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">What I tested</div>
+        <div class="eval-content">
+          Granola is Mac-only — I'm on Windows — so I had to route around the problem. I exported a Zoom transcript from a retrospective meeting as a .txt file and fed it in through the web interface. Not the intended use case, but close enough to evaluate the synthesis quality. The session covered sprint outcomes, three unresolved blockers, and a debate about reprioritizing a backlog item. I wanted to see whether it could distinguish between a decision made and a topic discussed.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it impressed</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>Action item extraction was the standout — it correctly attributed owners to 5 of 6 items and caught a deadline that was mentioned once in passing near the end of the call. The one it missed was genuinely ambiguous in the transcript too, so I'm not counting that against it.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>It flagged open questions separately from decisions. That distinction is exactly what post-meeting notes should capture and almost nobody does manually. If this becomes habitual, it changes how teams track accountability.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>The ability to query across your notes history — "what did we decide about X in Q1?" — is the feature I keep thinking about. That's a real problem for PMs at fast-moving companies where institutional memory lives in people's heads.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it fell short</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span><strong>Mac-only.</strong> This is a real adoption blocker for Indian product teams. Most India-based PMs I know work across Windows laptops, Android phones, and WhatsApp threads. The Mac requirement cuts the addressable team in half.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>No integration with Google Meet natively on transcript import — had to route through Otter.ai first, which creates friction that negates the time savings.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Occasionally attributed a statement to the wrong speaker when two people had similar vocal patterns — minor but confusing in contentious meetings.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Recommendation</div>
+        <div class="eval-content">
+          <strong>Watch</strong> — and the only reason it's not Adopt is the Mac requirement. Product quality is genuinely high. If I were on a Mac and the team used Google Workspace, this would be the easiest Adopt in this list. As it stands, it's not a tool I can actually use, which matters. Recommendation: revisit when they ship cross-platform support, which I'd expect within the year given where the category is going.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOL 4: DOVETAIL -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div class="tool-title-group">
+        <div class="tool-number">04 / 05</div>
+        <div class="tool-name c-dovetail">Dovetail</div>
+        <div class="tool-tagline">User research repository and AI analysis</div>
+      </div>
+      <div class="tool-badge-group">
+        <div class="verdict-badge verdict-adopt">↑ Adopt</div>
+        <div class="tag">User Research</div>
+        <div class="tag">Synthesis</div>
+      </div>
+    </div>
+    <div class="tool-stripe stripe-dovetail"></div>
+
+    <div class="eval-grid">
+      <div class="eval-row">
+        <div class="eval-label">Problem it solves</div>
+        <div class="eval-content">
+          Research debt. Most PMs do 8 user interviews, write up 3 of them, and the other 5 live in a Notion doc nobody reads. Dovetail is a research repository that also does the analysis — tagging themes, surfacing quotes, and letting you query across all your research history. The AI piece accelerates the manual coding that makes qualitative research so time-consuming.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">What I tested</div>
+        <div class="eval-content">
+          Imported 8 interview transcripts (a mix of rider and driver interviews around onboarding friction, sourced from UX research databases and adapted for the mobility context). Asked Dovetail to auto-tag themes and then compared the AI-suggested themes against my own manual analysis of the same transcripts.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it impressed</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>AI-suggested themes were accurate roughly 70% of the time — meaning I could accept most of them and just review the rest, rather than building the entire taxonomy from scratch. Saved approximately 2 hours of manual work.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>The quote library is where Dovetail really shines. You can pull evidence for any claim in seconds. This changes how you present research to stakeholders — instead of "users said X," you have 6 verbatim quotes tagged to a theme, hyperlinked in your slide.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>The research repository compounds over time. Six months of interviews become a queryable asset — "what have riders said about pricing in the last quarter?" is a real, answerable question.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it fell short</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>The AI over-merged themes in one important case — it collapsed "trust issues with unknown drivers" and "safety concerns during night rides" into a single "safety" theme. For a mobility product, those are analytically distinct problems with different solutions. Human review of every merge is non-negotiable.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Pricing is steep at the team tier — harder to justify if the research function is one person or embedded in a small product team rather than a dedicated research org.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Transcript formatting is fussy — anything that isn't a clean speaker-labelled export needs reformatting before upload. WhatsApp interview notes (common in India-based research) require significant cleanup.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Recommendation</div>
+        <div class="eval-content">
+          <strong>Adopt</strong> — with one condition: someone on the team owns the taxonomy and reviews AI-suggested merges before they're finalized. The cost of a wrong theme cluster is a misdirected roadmap item. Used correctly, Dovetail is the single tool most likely to change how a product team makes decisions, because it makes research actually accessible rather than archived.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOL 5: LOVABLE -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div class="tool-title-group">
+        <div class="tool-number">05 / 05</div>
+        <div class="tool-name c-lovable">Lovable</div>
+        <div class="tool-tagline">Prompt-to-prototype in minutes</div>
+      </div>
+      <div class="tool-badge-group">
+        <div class="verdict-badge verdict-adopt">↑ Adopt</div>
+        <div class="tag">Prototyping</div>
+        <div class="tag">Concept Testing</div>
+      </div>
+    </div>
+    <div class="tool-stripe stripe-lovable"></div>
+
+    <div class="eval-grid">
+      <div class="eval-row">
+        <div class="eval-label">Problem it solves</div>
+        <div class="eval-content">
+          The design bottleneck in early discovery. You have a concept, you want to put something in front of users or stakeholders this week, and design bandwidth is allocated three sprints out. Lovable lets a PM generate a working React prototype from a text description — no design or engineering time required.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">What I tested</div>
+        <div class="eval-content">
+          Prototyped a "Driver Earnings Clarity" dashboard concept — a hypothetical screen where drivers can see their weekly earnings breakdown, hours online, incentive completion, and a simple projection for the month ahead. Described it in one paragraph, iterated with 3 follow-up prompts.
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it impressed</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>I went from description to working React prototype in under 15 minutes. Showed it to two colleagues that afternoon — the conversation was about whether the concept was right, not "imagine if the button were here." That's the whole point of a prototype and it's surprisingly rare to get there this fast.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>It handles iteration well — "move the incentive tracker above the fold" and "make the monthly projection number larger" were both understood and applied correctly on the first try.</span></div>
+            <div class="pm-item pm-plus"><span class="pm-icon">+</span><span>Shareable URL is a real unlock. Sending a live link to a stakeholder in Slack beats attaching a Figma file they need to open with a login.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Where it fell short</div>
+        <div class="eval-content">
+          <div class="plus-minus">
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>The visual output is recognizably generic — Shadcn components, Tailwind palette, standard card layouts. Any designer will clock it immediately. Acceptable for internal concept testing, not for external user research sessions where the interface itself affects responses.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Complex logic breaks down — I asked it to simulate a dynamic incentive calculation based on hours worked, and the math in the prototype was wrong. Needs a developer to verify any interactive logic before user testing.</span></div>
+            <div class="pm-item pm-minus"><span class="pm-icon">–</span><span>Not a design handoff tool. Engineers can't build from this. It's a conversation starter, not a spec.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="eval-label">Recommendation</div>
+        <div class="eval-content">
+          <strong>Adopt</strong> for internal concept testing and early discovery. Skip for user research sessions where visual fidelity affects the quality of feedback, and skip for anything that needs to go near engineering. The right use case is: PM has an idea on Monday, wants three stakeholders to react to something real by Wednesday. Lovable makes that possible without touching design bandwidth.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="framework-section">
+    <div class="section-label">How I Evaluated</div>
+    <p style="color:var(--text-muted);font-size:15px;max-width:640px;line-height:1.8;">I've seen enough tool evaluations that are basically vibes dressed up as frameworks. I tried to be more honest about what I was actually weighting.</p>
+    <div class="framework-grid">
+      <div class="framework-cell">
+        <div class="fc-label">Question 01</div>
+        <div class="fc-title">Is the output usable?</div>
+        <div class="fc-text">Not perfect — usable. Does it need less than 30 minutes of editing to go into a real work context? If the editing takes longer than doing it yourself, the tool failed the test.</div>
+      </div>
+      <div class="framework-cell">
+        <div class="fc-label">Question 02</div>
+        <div class="fc-title">What's the worst case?</div>
+        <div class="fc-text">Tools fail differently. A hallucinated data point in a competitive brief is a high-stakes failure. A slightly generic PRD structure is low-stakes. I weighted tools down hard if their failure modes were invisible or hard to catch.</div>
+      </div>
+      <div class="framework-cell">
+        <div class="fc-label">Question 03</div>
+        <div class="fc-title">Will people actually use it?</div>
+        <div class="fc-text">Adoption is a product problem. A tool that requires 3 extra steps, a Mac, or a specific file format is a tool that will get skipped when things get busy. Friction matters more than features.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAPIDO SECTION -->
+  <div class="rapido-section">
+    <h2>One Workflow I'd Ship on Day One</h2>
+    <p class="rapido-sub">If I were joining Rapido's product team next Monday, here's the first thing I'd propose integrating — built from the tools above.</p>
+
+    <div style="font-size:15px;color:var(--text-muted);line-height:1.8;margin-bottom:16px;">
+      The biggest research bottleneck on any fast-moving mobility PM team is the gap between "we should talk to users about X" and "here's what users think about X, here's the evidence, here's the recommendation." Right now that gap is typically 2–3 weeks. With this workflow, it's 3–4 days.
+    </div>
+
+    <div class="workflow-box">
+      <div class="workflow-title">Research Sprint Workflow — Perplexity + Dovetail</div>
+      <div class="workflow-steps">
+        <div class="workflow-step">
+          <div class="step-num">01</div>
+          <div class="step-body">
+            <strong>Perplexity: Desk research in 45 minutes <span class="time-badge">45 min</span></strong>
+            <span>Define the question, run 3–4 targeted searches on Perplexity to understand the competitive and market context. Output: a 1-page brief with cited sources and 3 hypotheses to test with users. This replaces a half-day of tab-hopping.</span>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">02</div>
+          <div class="step-body">
+            <strong>5–8 user interviews, uploaded to Dovetail <span class="time-badge">2–3 days</span></strong>
+            <span>Conduct interviews (in-person, WhatsApp voice notes, or Zoom). Clean transcripts and upload to Dovetail. The research is live in the repository for the whole team, not just the PM who ran the calls.</span>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">03</div>
+          <div class="step-body">
+            <strong>Dovetail: AI-assisted synthesis in 2 hours <span class="time-badge">2 hours</span></strong>
+            <span>Let Dovetail auto-tag. Human review of every merged theme — 30 minutes max. Output: a theme map with evidence. Not a 20-slide deck; a 1-page summary with linked quotes.</span>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">04</div>
+          <div class="step-body">
+            <strong>Decision brief shared in Slack <span class="time-badge">30 min</span></strong>
+            <span>Three sections: what we heard, what it means for the roadmap, what we're recommending. No fluff. Stakeholders can click through to the raw evidence if they want to verify. This changes research from a deliverable into a living record.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;font-size:14px;color:var(--text-muted);font-style:italic;">
+      My rough estimate: this cuts the research-to-decision timeline roughly in half. The compounding value is the repository — six months in, the team can answer "have we heard this before?" in two minutes, not two days. That institutional memory piece is what most teams are missing.
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-left">Aditya Mathur · PM Tooling Evaluation 2025</div>
+    <div class="footer-right">5 tools · 5 tasks · One workflow</div>
+  </footer>
+
+</div>
+</body>
+</html>
